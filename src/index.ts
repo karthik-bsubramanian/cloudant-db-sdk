@@ -70,7 +70,7 @@ app.get('/employees/:id', async (req, res) => {
 })
 
 app.put('/employees/update', async (req, res) => {
-    const body = JSON.parse(req.body);
+    const body = req.body;
     const dbName = body.dbname
     const docId = body._id
 
@@ -103,20 +103,30 @@ app.put('/employees/update', async (req, res) => {
 
 app.delete('/employees/remove', async (req, res) => {
 
-    const body = JSON.parse(req.body);
+    const body = req.body;
 
-    const dbName = body.dbName
+    const dbName = body.dbname
     const docId = body._id
 
+    try {
+        const existing = await cloudant.getDocument({ db: dbName, docId });
 
-    const existing = await cloudant.getDocument({ db: dbName, docId });
+        await cloudant.deleteDocument({
+            db: dbName,
+            docId,
+            rev: existing.result._rev,
+        });
 
-    await cloudant.deleteDocument({
-        db: dbName,
-        docId,
-        rev: existing.result._rev,
-    });
+        res.status(200).json({
+            "message": "deleted successfully"
+        })
 
+    } catch (error) {
+        res.status(400).json({
+            error: "Failed to delete"
+        })
+        console.log(error);
+    }
 })
 
 app.listen(PORT,()=>{
